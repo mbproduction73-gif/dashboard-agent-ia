@@ -1,3 +1,4 @@
+import os
 import re
 import sys
 import logging
@@ -186,5 +187,6 @@ def _upload_safe(page, selector: str, files: list[str], timeout: int = 3000) -> 
 
 if __name__ == "__main__":
     pdf_source = sys.argv[1] if len(sys.argv) > 1 else "document.pdf"
+    headless = os.getenv("HEADLESS", "false").lower() == "true"
     extracted = extract_data(pdf_source)
-    automate(extracted, headless=False)
+    automate(extracted, headless=headless)

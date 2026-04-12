@@ -1,0 +1,16 @@
+services:
+  agent:
+    build: .
+    image: dashboard-agent-ia
+    # Monte le dossier local ./documents vers /app/documents dans le conteneur
+    volumes:
+      - ./documents:/app/documents
+    environment:
+      # HEADLESS=true  → navigateur invisible (mode serveur)
+      # HEADLESS=false → navigateur visible  (mode local avec display)
+      HEADLESS: "${HEADLESS:-false}"
+      DISPLAY: "${DISPLAY:-}"
+    # Partage le serveur X local pour afficher le navigateur (Linux)
+    network_mode: host
+    # Décommente si tu utilises un display virtuel (serveur sans écran)
+    # command: ["xvfb-run", "--auto-servernum", "python", "automate_pdf_forms.py", "/app/documents/document.pdf"]
