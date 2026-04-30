@@ -1,88 +1,126 @@
-# Agent Autonome IA - Claude (Anthropic)
+# AgendaPro - SaaS de Prise de Rendez-vous
 
-Agent autonome Node.js connecte a l'API Anthropic (Claude).
-Il peut rechercher sur le web, lire/ecrire des fichiers et executer des commandes.
+Application web complète pour automatiser la gestion des rendez-vous pour les commerces (coiffeurs, restaurants, médecins, etc.) avec intégration WhatsApp et IA Claude.
 
-## Installation rapide
-
-### 1. Cloner le repo
-```bash
-git clone https://github.com/mbproduction73-gif/dashboard-agent-ia.git
-cd dashboard-agent-ia
-```
-
-### 2. Installer les dependances
-```bash
-cd agent
-npm install
-```
-
-### 3. Configurer la cle API
-```bash
-cp ../.env.example .env
-# Editez .env et ajoutez votre cle Anthropic
-```
-
-Contenu du fichier `.env`:
-```
-ANTHROPIC_API_KEY=sk-ant-votre-vraie-cle-ici
-```
-
-### 4. Lancer l'agent
-
-**Mode interactif** (conversation):
-```bash
-node index.js
-```
-
-**Mode direct** (une seule tache):
-```bash
-node index.js "Recherche les dernières nouvelles sur l'IA et sauvegarde un résumé dans resultats.txt"
-```
-
-## Exemples de taches
-
-```
-> Tache: Recherche qui est Elon Musk et fais un résumé
-> Tache: Liste les fichiers dans le dossier courant
-> Tache: Crée un fichier hello.txt avec le contenu "Bonjour le monde"
-> Tache: Recherche les meilleurs frameworks Node.js en 2024 et sauvegarde les résultats
-> Tache: Quelle est la météo à Paris aujourd'hui ?
-```
-
-## Outils disponibles
-
-| Outil | Description |
-|-------|-------------|
-| `web_search` | Recherche DuckDuckGo |
-| `read_url` | Lire le contenu d'une page web |
-| `write_file` | Ecrire dans un fichier local |
-| `read_file` | Lire un fichier local |
-| `list_files` | Lister les fichiers d'un dossier |
-| `run_command` | Executer une commande shell |
-
-## Structure du projet
+## Architecture
 
 ```
 dashboard-agent-ia/
-├── agent/
-│   ├── index.js        <- Agent principal (boucle agentique)
-│   ├── tools.js        <- Definition et execution des outils
-│   └── package.json    <- Dependances Node.js
-├── .env.example        <- Template configuration
-└── README.md
+├── frontend/          # Next.js 14 + TypeScript + Tailwind
+│   └── src/
+│       ├── app/       # Pages (login, register, dashboard)
+│       ├── components/# Composants réutilisables
+│       ├── hooks/     # useAuth
+│       ├── lib/       # api.ts, auth.ts
+│       └── types/     # Types TypeScript
+├── backend/           # Node.js + Express REST API
+│   └── src/
+│       ├── config/    # Supabase client
+│       ├── controllers/
+│       ├── middleware/ # Auth JWT
+│       ├── routes/
+│       └── services/  # Claude IA service
+└── supabase/
+    └── schema.sql     # Tables + RLS + triggers
 ```
 
-## Comment ca marche
+## Stack technique
 
-1. Vous donnez une tache a l'agent
-2. Claude (via API Anthropic) analyse la tache
-3. Claude choisit les outils a utiliser
-4. Les outils s'executent et renvoient les resultats
-5. Claude continue jusqu'a completion de la tache
-6. Resultat final affiche dans le terminal
+| Couche     | Technologie                          |
+|------------|--------------------------------------|
+| Frontend   | Next.js 14, TypeScript, Tailwind CSS |
+| Backend    | Node.js, Express                     |
+| Base de données | Supabase (PostgreSQL)           |
+| IA         | Claude claude-sonnet-4-6 (Anthropic) |
+| Auth       | JWT + bcrypt                         |
+| WhatsApp   | Meta Business API (webhook)          |
 
-## Prerequis
+## Installation rapide
 
-- Node.js 18+
-- Cle API Anthropic (https://console.anthropic.com/)
+### 1. Base de données Supabase
+1. Créer un projet sur [supabase.com](https://supabase.com)
+2. Aller dans SQL Editor → New query
+3. Coller et exécuter `supabase/schema.sql`
+
+### 2. Backend
+```bash
+cd backend
+cp .env.example .env
+# Éditer .env avec vos clés Supabase + Anthropic
+npm install
+npm run dev   # → http://localhost:4000
+```
+
+### 3. Frontend
+```bash
+cd frontend
+cp .env.example .env.local
+# NEXT_PUBLIC_API_URL=http://localhost:4000
+npm install
+npm run dev   # → http://localhost:3000
+```
+
+## Variables d'environnement Backend
+
+| Variable | Description |
+|----------|-------------|
+| `SUPABASE_URL` | URL du projet Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clé service role Supabase |
+| `JWT_SECRET` | Secret JWT (chaîne aléatoire longue) |
+| `ANTHROPIC_API_KEY` | Clé API Anthropic |
+| `WHATSAPP_VERIFY_TOKEN` | Token vérification webhook Meta |
+| `FRONTEND_URL` | URL frontend (CORS) |
+
+## API Endpoints
+
+### Auth
+```
+POST /api/auth/register   Inscription (+ création du commerce)
+POST /api/auth/login      Connexion
+GET  /api/auth/me         Profil connecté
+PUT  /api/auth/profile    Mise à jour profil
+```
+
+### Rendez-vous
+```
+GET    /api/appointments          Lister (filtres: status, dates)
+GET    /api/appointments/stats    Statistiques dashboard
+POST   /api/appointments          Créer
+PUT    /api/appointments/:id      Modifier
+DELETE /api/appointments/:id      Annuler (soft delete)
+```
+
+### Services & Clients
+```
+GET/POST/PUT/DELETE /api/services    CRUD services
+GET/POST/PUT        /api/customers   CRUD clients
+```
+
+### WhatsApp + IA
+```
+GET  /api/whatsapp/webhook    Vérification Meta webhook
+POST /api/whatsapp/webhook    Messages entrants (auto-analyse)
+POST /api/whatsapp/simulate   Simulateur de démo
+GET  /api/whatsapp/messages   Historique conversations
+POST /api/ai/analyze          Analyse directe d'un message
+```
+
+## Fonctionnalités
+
+- **Auth** : Inscription/connexion par commerce, JWT, isolation multi-tenant
+- **Dashboard** : Statistiques temps réel, prochains RDV
+- **Rendez-vous** : CRUD complet, détection conflits de créneaux
+- **IA Claude** : Extraction date/heure/service/nom depuis messages naturels
+- **WhatsApp** : Webhook Meta + simulateur intégré pour démonstration
+- **Services** : Configuration personnalisée (durée, prix, couleur)
+- **Sécurité** : RLS Supabase, rate limiting, helmet, bcrypt
+
+## Déploiement
+
+```bash
+# Frontend → Vercel
+cd frontend && vercel deploy
+
+# Backend → Railway / Render / Fly.io
+cd backend && # configurer les env vars puis deploy
+```
